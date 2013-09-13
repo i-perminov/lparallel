@@ -110,11 +110,14 @@
 (defun make-vector-queue* ()
   (make-vector-queue 20))
 
+(defun try-pop-vector-queue* (queue)
+  (try-pop-vector-queue queue 0))
+
 (define-queue-test vector-queue-test
   :make-queue    make-vector-queue*
   :push-queue    push-vector-queue
   :pop-queue     pop-vector-queue
-  :try-pop-queue try-pop-vector-queue
+  :try-pop-queue try-pop-vector-queue*
   :queue-empty-p vector-queue-empty-p
   :queue-count   vector-queue-count
   :peek-queue    peek-vector-queue)
@@ -262,3 +265,29 @@
     (is (= 3 (pop-queue q)))
     (is (= 4 (pop-queue q)))
     (is (queue-empty-p q))))
+
+(base-test queue-timeout-test
+  (let ((q (make-queue))
+        (flag nil))
+    (with-thread ()
+      (sleep 0.4)
+      (setf flag t))
+    (multiple-value-bind (a b) (try-pop-queue q :timeout 0.2)
+      (is (null a))
+      (is (null b))
+      (is (queue-empty-p q))
+      (is (null flag))
+      (sleep 0.3)
+      (is (eq t flag))))
+  (let ((q (make-queue :fixed-capacity 10))
+        (flag nil))
+    (with-thread ()
+      (sleep 0.4)
+      (setf flag t))
+    (multiple-value-bind (a b) (try-pop-queue q :timeout 0.2)
+      (is (null a))
+      (is (null b))
+      (is (queue-empty-p q))
+      (is (null flag))
+      (sleep 0.3)
+      (is (eq t flag)))))

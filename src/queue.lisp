@@ -137,17 +137,24 @@
   cons-queue-full-p/no-lock
   vector-queue-full-p/no-lock)
 
-(define-queue-fn try-pop-queue (queue)
-  try-pop-cons-queue
-  try-pop-vector-queue)
-
-(define-queue-fn try-pop-queue/no-lock (queue)
-  try-pop-cons-queue/no-lock
-  try-pop-vector-queue/no-lock)
-
 (define-queue-fn call-with-locked-queue (fn queue)
   call-with-locked-cons-queue
   call-with-locked-vector-queue)
+
+(defmacro define-try-pop-queue (name cons-name vector-name)
+  `(defun/inline ,name (queue &key (timeout 0))
+     #+sbcl (declare (sb-ext:muffle-conditions sb-ext:compiler-note))
+     (typecase queue
+       (cons-queue (,cons-name queue timeout))
+       (vector-queue (,vector-name queue timeout)))))
+
+(define-try-pop-queue try-pop-queue
+  try-pop-cons-queue
+  try-pop-vector-queue)
+
+(define-try-pop-queue try-pop-queue/no-lock
+  try-pop-cons-queue/no-lock
+  try-pop-vector-queue/no-lock)
 
 ;;;; doc
 
