@@ -174,18 +174,16 @@
 (defun/inline get-real-time-in-seconds ()
   (/ (get-internal-real-time) internal-time-units-per-second))
 
-(defmacro condition-wait/track-state (cvar lock timeout)
-  "Helper macro for using condition-wait. Lazily creates the condition
-variable and tracks the timeout state progress."
-  (check-type cvar symbol)
-  (check-type lock symbol)
-  (check-type timeout symbol)
+(defun %time-remaining (start timeout)
+  (- timeout
+     (- (get-real-time-in-seconds) start)))
+
+(defmacro/once with-timer ((&once time) &body body)
   (with-gensyms (start)
     `(let ((,start (get-real-time-in-seconds)))
-       (condition-wait (or ,cvar (setf ,cvar (make-condition-variable)))
-                       ,lock :timeout ,timeout)
-       (decf ,timeout (- (get-real-time-in-seconds)
-                         ,start)))))
+       (flet ((time-remaining () (%time-remaining ,start ,time)))
+         (declare (inline time-remaining))
+         ,@body))))
 
 (defmacro define-locking-fn/base (name args arg-types return-type
                                   lock-reader
